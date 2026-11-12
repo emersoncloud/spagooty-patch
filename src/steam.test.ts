@@ -11,6 +11,17 @@ describe("isPatchNote", () => {
   test("untagged but titled as patch/hotfix", () => {
     expect(isPatchNote({ feedname: official, title: "Hotfix v1.0.2", tags: null })).toBe(true);
   });
+  test("untagged major update", () => {
+    expect(isPatchNote({ feedname: official, title: "Major Update #2 - v0.107.1", tags: null })).toBe(true);
+  });
+  test("untagged version-only title", () => {
+    expect(isPatchNote({ feedname: official, title: "The Watcher Arrives - v0.120.0", tags: null })).toBe(true);
+  });
+  test("non-patch announcements", () => {
+    for (const title of ["Slay the Spire 2 is out NOW in Early Access!!", "Slay the Spire: The Board Game - Downfall Expansion Kickstarter Now Live!"]) {
+      expect(isPatchNote({ feedname: official, title, tags: null })).toBe(false);
+    }
+  });
   test("newsletter is not a patch", () => {
     expect(isPatchNote({ feedname: official, title: "The Neowsletter - October 2026", tags: null })).toBe(false);
   });

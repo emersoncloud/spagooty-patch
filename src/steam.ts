@@ -16,7 +16,8 @@ type NewsItem = {
   tags?: string[] | null;
 };
 
-const PATCH_TITLE = /\b(patch|hotfix)\b/i;
+// Major updates ship untagged ("Major Update #2 - v0.107.1"), so match on title too
+const PATCH_TITLE = /\b(patch|hotfix|update|bug ?fix(es)?)\b|\bv\d+\.\d+/i;
 
 export function isPatchNote(item: Pick<NewsItem, "feedname" | "title" | "tags">): boolean {
   if (item.feedname !== "steam_community_announcements") return false;
