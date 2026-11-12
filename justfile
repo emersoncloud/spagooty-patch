@@ -19,3 +19,11 @@ test:
 
 typecheck:
     bunx tsc
+
+# On GitHub Actions: poll every 60s for N minutes (max 350) — start shortly before an expected patch
+watch-remote minutes="240":
+    gh workflow run check.yml -f watch_minutes={{minutes}}
+
+# Trigger a single check on GitHub Actions now
+check-remote:
+    gh workflow run check.yml

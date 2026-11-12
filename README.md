@@ -19,6 +19,11 @@ posts tagged `patchnotes` or titled "patch"/"hotfix". Seen post IDs are kept in 
 
 ### GitHub Actions (free hosting)
 
-Push to a GitHub repo, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as repo secrets. The workflow runs every
-15 minutes and commits `state.json` back when it alerts. Caveats: GitHub cron often runs late by 5–20 min, and
-disables scheduled workflows after 60 days without repo activity — re-enable from the Actions tab if that happens.
+Push to a GitHub repo, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as repo secrets. The workflow:
+
+- checks every 5 minutes (GitHub's minimum; runs are often late by 5–20 min under load)
+- `just watch-remote 240` starts a watch window that polls every 60s for N minutes (max 350) — use it before a
+  known patch drop for ~1 minute latency independent of GitHub's cron delays
+
+It commits `state.json` back when it alerts, so `git pull` before editing locally. GitHub disables scheduled
+workflows after 60 days without repo activity — re-enable from the Actions tab if that happens.

@@ -2,12 +2,18 @@ name: Check for Slay the Spire 2 patches
 
 on:
   schedule:
-    - cron: "4,19,34,49 * * * *" # off the :00 peak, where GitHub delays/drops runs
+    # GitHub's minimum is 5 min; offset from :00, where runs get delayed/dropped most
+    - cron: "2-59/5 * * * *"
   workflow_dispatch:
+    inputs:
+      watch_minutes:
+        description: "Keep polling every 60s for this many minutes (0 = single check, max 350)"
+        default: "0"
 
 permissions:
   contents: write
 
+# One run at a time so a watch window and scheduled checks never double-alert
 concurrency:
   group: patch-check
   cancel-in-progress: false
@@ -15,17 +21,32 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun src/main.ts check
+      - name: Check (and watch, if requested)
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      - name: Persist state
+          WATCH_MINUTES: ${{ inputs.watch_minutes || '0' }}
         run: |
-          git diff --quiet state.json && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898732+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore: update seen patch notes [skip ci]"
-          git push
+
+          persist() {
+            git diff --quiet state.json && return 0
+            git commit -qam "chore: update seen patch notes [skip ci]"
+            git pull -q --rebase && git push -q
+          }
+
+          minutes=$(( WATCH_MINUTES > 350 ? 350 : WATCH_MINUTES ))
+          end=$(( $(date +%s) + minutes * 60 ))
+          while :; do
+            ok=1
+            bun src/main.ts check || { ok=0; echo "::warning::check failed"; }
+            persist
+            [ "$(date +%s)" -ge "$end" ] && break
+            sleep 60
+          done
+          [ "$ok" = 1 ] # fail the job if the final check failed
